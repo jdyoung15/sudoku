@@ -67,13 +67,20 @@
       const ROW_START_POSITIONS = [0, 9, 18, 27, 36, 45, 54, 63, 72];
       const COL_START_POSITIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8];
       const BLOCK_START_POSITIONS = [0, 3, 6, 27, 30, 33, 54, 57, 60]; 
+      const POSSIBLE_ANSWERS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 
       // ##################################################
       // Global functions
       // ##################################################
 
-      function generateSquares(numSquares, probability) {
+      /**
+       * @param {Number} numSquares - The number of squares to generate
+       * @param {Number} probability - The likelilhood that a square will be prefilled with an answer
+       * @returns {Array} An array, of numSquares length, containing numbers and nulls. The numbers 
+       *   represent answered squares, the nulls empty squares. 
+       */
+      function generateInitialSquares(numSquares, probability) {
         const squares = Array(numSquares).fill(null);
         const answers = generateAnswers(numSquares);
         answers.forEach((answer, index) => {
@@ -84,28 +91,32 @@
         return squares;
       }
 
-      // Algorithm: https://www.codeproject.com/Articles/23206/Sudoku-Algorithm-Generates-a-Valid-Sudoku-in
+      /**
+       * @param {Number} numSquares - The number of answers to generate
+       * @returns {Array} An array, of numSquares length, containing numbers representing answered squares
+       *
+       * Algorithm: https://www.codeproject.com/Articles/23206/Sudoku-Algorithm-Generates-a-Valid-Sudoku-in
+       */
       function generateAnswers(numSquares) {
         const answers = Array(numSquares);
-        const possibleAnswersBySquare = Array(numSquares);
-        for (let i = 0; i < numSquares; i++) {
-          possibleAnswersBySquare[i] = [1, 2, 3, 4, 5, 6, 7, 8, 9].shuffle();
-        }
+        const possibleAnswersBySquare = Array(numSquares).fill(null);
+        possibleAnswersBySquare.forEach((possibleAnswer, index, ary) => {
+          ary[index] = POSSIBLE_ANSWERS.slice().shuffle();
+        });
 
         let position = 0;
         while (position < numSquares) {
           let possibleAnswers = possibleAnswersBySquare[position]; 
+
+          // If no remaining possible answers for this square, replenish answers and backtrack one square
           if (possibleAnswers.length === 0) {
-            possibleAnswersBySquare[position] = [1, 2, 3, 4, 5, 6, 7, 8, 9].shuffle();
+            possibleAnswersBySquare[position] = POSSIBLE_ANSWERS.slice().shuffle();
             answers[position] = null;
-            if (position > 0) {
-              position--;
-            }
+            if (position > 0) position--;
             continue;
           }
 
-          let answer = possibleAnswers.pop();
-          answers[position] = answer;
+          answers[position] = possibleAnswers.pop();
           if (!isValid(position, answers)) {
             answers[position] = null;
             continue;
@@ -116,34 +127,50 @@
         return answers; 
       }
 
+      /**
+       * @param {Number} position - Represents the position of the square containing the answer to be checked
+       * @param {Array} squares - An array of numbers representing the squares of the Sudoku board
+       * @returns {Boolean} Indicates whether the answer at the given position is valid, given the surrounding squares
+       */
       function isValid(position, squares) {
         return findConflictingSquaresForPositions(squares, findSquaresInRow(position)).length === 0
           && findConflictingSquaresForPositions(squares, findSquaresInCol(position)).length === 0
          && findConflictingSquaresForPositions(squares, findSquaresInBlock(position)).length === 0;
       }
 
+      /**
+       * @param {Array} squares - An array of numbers representing the squares of the Sudoku board
+       * @returns {Array} An array of numbers representing the positions of conflicting squares,
+       *   that is, duplicate squares in the same row, column, or block.
+       */
       function findConflictingSquares(squares) {
         let conflictingSquares = [];
 
-        ROW_START_POSITIONS.forEach(p => {
-          conflictingSquares = conflictingSquares.concat(findConflictingSquaresForPositions(squares, findSquaresInRow(p)));
+        ROW_START_POSITIONS.forEach(position => {
+          conflictingSquares = conflictingSquares.concat(findConflictingSquaresForPositions(squares, findSquaresInRow(position)));
         });
-
-        COL_START_POSITIONS.forEach(p => {
-          conflictingSquares = conflictingSquares.concat(findConflictingSquaresForPositions(squares, findSquaresInCol(p)));
+        COL_START_POSITIONS.forEach(position => {
+          conflictingSquares = conflictingSquares.concat(findConflictingSquaresForPositions(squares, findSquaresInCol(position)));
         });
-
-        BLOCK_START_POSITIONS.forEach(p => {
-          conflictingSquares = conflictingSquares.concat(findConflictingSquaresForPositions(squares, findSquaresInBlock(p)));
+        BLOCK_START_POSITIONS.forEach(position => {
+          conflictingSquares = conflictingSquares.concat(findConflictingSquaresForPositions(squares, findSquaresInBlock(position)));
         });
 
         return Array.from(new Set(conflictingSquares));
       }
 
+      /**
+       * @param {Array} squares - An array of numbers representing the squares of the Sudoku board
+       * @param {Array} positions - An array of numbers representing a group of squares (e.g. a row, column, or block) 
+       *   to be checked for duplicates
+       * @returns {Array} An array of numbers representing the positions of conflicting squares
+       */
       function findConflictingSquaresForPositions(squares, positions) {
         const conflictingSquares = new Set(); 
+        // For each square, compare against the remaining squares and record any duplicates
         positions.forEach((position, index) => {
           let value = squares[position];
+          // If value is null, no need to compare against other squares
           if (!value) {
             return;
           }
@@ -164,6 +191,10 @@
         return Array.from(conflictingSquares);
       }
 
+      /**
+       * @param {Number} position - The position of a square
+       * @returns {Array} An array of numbers representing all squares in the row of the given square
+       */
       function findSquaresInRow(position) {
         const rowPositions = [];
         const start = Math.floor(position / NUM_COLS) * NUM_COLS;
@@ -173,6 +204,10 @@
         return rowPositions;
       }
 
+      /**
+       * @param {Number} position - The position of a square
+       * @returns {Array} An array of numbers representing all squares in the column of the given square
+       */
       function findSquaresInCol(position) {
         const colPositions = [];
         const start = position % NUM_COLS;
@@ -182,6 +217,10 @@
         return colPositions;
       }
 
+      /**
+       * @param {Number} position - The position of a square
+       * @returns {Array} An array of numbers representing all squares in the 3x3 block of the given square
+       */
       function findSquaresInBlock(position) {
         const blockPositions = [];
         const startRow = Math.floor(position / NUM_SQUARES_PER_ROW_OF_BLOCKS) * BLOCK_HEIGHT;
@@ -195,6 +234,10 @@
         return blockPositions; 
       }
 
+      /**
+       * @param {Array} squares - An array of numbers representing the squares of the Sudoku board
+       * @returns {Array} An array of numbers representing the positions of squares that contain an answer
+       */
       function findFilledSquares(squares) {
         const filledSquares = [];
         squares.forEach((square, index) => {
@@ -205,6 +248,10 @@
         return filledSquares;
       }
 
+      /**
+       * @param {Array} squares - An array of numbers representing the squares of the Sudoku board
+       * @returns {Boolean} Indicates whether the game, given its current state, has been won
+       */
       function isGameWon(squares) {
         if (squares.includes(null)) {
           return false;
@@ -213,7 +260,11 @@
         return findConflictingSquares(squares).length == 0;
       }
 
-      // Source: https://www.kirupa.com/html5/shuffling_array_js.htm
+      /**
+       * @returns {Array} Returns this array with its contents in randomized order
+       *
+       * Source: https://www.kirupa.com/html5/shuffling_array_js.htm
+       */
       Array.prototype.shuffle = function() {
           var input = this;
            
@@ -228,10 +279,10 @@
           return input;
       }
 
-      // Source: https://stackoverflow.com/questions/3746725/create-a-javascript-array-containing-1-n
-      function createArrayToN(n) {
-        return Array.apply(null, {length: n}).map(Number.call, Number);
-      }
+      //// Source: https://stackoverflow.com/questions/3746725/create-a-javascript-array-containing-1-n
+      //function createArrayToN(n) {
+      //  return Array.apply(null, {length: n}).map(Number.call, Number);
+      //}
 
 
       // ##################################################
@@ -292,7 +343,7 @@
 			class Game extends React.Component {
 			  constructor() {
 			    super();
-			    const squares = generateSquares(NUM_SQUARES, LOW_DIFFICULTY_PROBABILITY);
+			    const squares = generateInitialSquares(NUM_SQUARES, LOW_DIFFICULTY_PROBABILITY);
 			    this.state = {
 			      squares: squares,
             selectedSquare: null,
