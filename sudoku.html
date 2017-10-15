@@ -243,7 +243,7 @@
         const inactive = props.inactive ? " inactive" : "";
         const conflicting = props.conflicting ? " conflicting" : "";
 			  return (
-			    <button className={"square" + highlighted + inactive + conflicting} onClick={props.onClick} onKeyDown={event => props.onKeyDown(event.key)}>
+			    <button className={"square" + highlighted + inactive + conflicting} onClick={props.onClick} onKeyDown={event => props.onKeyDown(event.key)} ref={props.squareRef}>
 			      {props.value}
 			    </button>
 			  );
@@ -262,6 +262,7 @@
 			        onClick={() => this.props.onClick(i)}
               onKeyDown={key => this.props.onKeyDown(i, key)}
               key={"square-" + i}
+              squareRef={(element) => this.props.squareRef(element, i)}
 			      />
 			    );
 			  }
@@ -312,8 +313,36 @@
 
         handleKeyDown(i, key) {
 			    const squares = this.state.squares.slice();
+          if (isGameWon(squares)) {
+            return;
+          }
 
-          if (this.state.prefilledSquares.includes(i) || isGameWon(squares)) {
+          if (key.startsWith("Arrow")) {
+            let newPosition;
+            switch (key) {
+              case "ArrowDown":
+                newPosition = (i + NUM_COLS) % 81;
+                break;
+              case "ArrowLeft":
+                newPosition = i % 9 === 0 ? i + NUM_COLS - 1 : i - 1;
+                break;
+              case "ArrowRight":
+                newPosition = i % 9 === NUM_COLS - 1 ? i - NUM_COLS + 1 : i + 1;
+                break;
+              case "ArrowUp":
+                newPosition = i < NUM_COLS ? i - NUM_COLS + NUM_SQUARES : i - NUM_COLS;
+                break;
+              default:
+                newPosition = i;
+            }
+            this.refs[newPosition].focus();
+            this.setState({
+              selectedSquare: newPosition
+            });
+            return;
+          }
+
+          if (this.state.prefilledSquares.includes(i)) {
             return;
           }
 
@@ -322,7 +351,7 @@
             userAnswer = null;
           } else {
             userAnswer = parseInt(key);
-            if (isNaN(userAnswer)) {
+            if (isNaN(userAnswer) || userAnswer === 0) {
               return;
             }
           }
@@ -336,10 +365,18 @@
             conflictingSquares: conflictingSquares
 			    });
         }
+
+        handleRef(el, i) {
+          console.log(i);
+          console.log(el);
+          this.refs[i] = el;
+        }
 			
 			  render() {
 			    const squares = this.state.squares.slice();
           const status = isGameWon(squares) ? "You have won the game!" : "";
+
+          this.refs = Array(81);
 
 			    return (
 			      <div className="game">
@@ -351,6 +388,7 @@
                   conflictingSquares={this.state.conflictingSquares}
 			            onClick={i => this.handleClick(i)}
                   onKeyDown={(i, key) => this.handleKeyDown(i, key)}
+                  squareRef={(el, i) => this.handleRef(el, i)}
 			          />
 			        </div>
 			        <div className="game-info">

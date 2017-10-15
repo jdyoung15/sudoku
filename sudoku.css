@@ -60,6 +60,10 @@ ol, ul {
   color: yellow;
 }
 
+.highlighted.inactive {
+  color: yellow;
+}
+
 .inactive {
   background: #d0d0d0;
   font-weight: bold;
