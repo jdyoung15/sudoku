@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hello World</title>
+    <link rel="stylesheet" href="sudoku.css">
+    <script src="https://unpkg.com/react@16/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+  </head>
+  <body>
+
+		<div id="errors" style="
+		  background: #c00;
+		  color: #fff;
+		  display: none;
+		  margin: -20px -20px 20px;
+		  padding: 20px;
+		  white-space: pre-wrap;
+		"></div>
+
+		<div id="root"></div>
+
+    <script type="text/babel">
+
+			window.addEventListener('mousedown', function(e) {
+			  document.body.classList.add('mouse-navigation');
+			  document.body.classList.remove('kbd-navigation');
+			});
+			window.addEventListener('keydown', function(e) {
+			  if (e.keyCode === 9) {
+			    document.body.classList.add('kbd-navigation');
+			    document.body.classList.remove('mouse-navigation');
+			  }
+			});
+			window.addEventListener('click', function(e) {
+			  if (e.target.tagName === 'A' && e.target.getAttribute('href') === '#') {
+			    e.preventDefault();
+			  }
+			});
+			window.onerror = function(message, source, line, col, error) {
+			  var text = error ? error.stack || error : message + ' (at ' + source + ':' + line + ':' + col + ')';
+			  errors.textContent += text + '\n';
+			  errors.style.display = '';
+			};
+			console.error = (function(old) {
+			  return function error() {
+			    errors.textContent += Array.prototype.slice.call(arguments).join(' ') + '\n';
+			    errors.style.display = '';
+			    old.apply(this, arguments);
+			  }
+			})(console.error);
+
+
+      // ##################################################
+      // Global constants
+      // ##################################################
+
+      const NUM_ROWS = 9;
+      const NUM_COLS = 9;
+      const NUM_SQUARES = NUM_ROWS * NUM_COLS;
+      const BLOCK_WIDTH = 3;
+      const BLOCK_HEIGHT = 3;
+      const NUM_BLOCKS_PER_ROW = NUM_COLS / BLOCK_WIDTH;
+      const NUM_SQUARES_PER_ROW_OF_BLOCKS = BLOCK_WIDTH * BLOCK_HEIGHT * NUM_BLOCKS_PER_ROW;
+      const LOW_DIFFICULTY_PROBABILITY = 0.5;
+      const ROW_START_POSITIONS = [0, 9, 18, 27, 36, 45, 54, 63, 72];
+      const COL_START_POSITIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+      const BLOCK_START_POSITIONS = [0, 3, 6, 27, 30, 33, 54, 57, 60]; 
+
+
+      // ##################################################
+      // Global functions
+      // ##################################################
+
+      function generateSquares(numSquares, probability) {
+        const squares = Array(numSquares).fill(null);
+        const answers = generateAnswers(numSquares);
+        answers.forEach((answer, index) => {
+          if (Math.random() < probability) {
+            squares[index] = answer;
+          }
+        });
+        return squares;
+      }
+
+      // Algorithm: https://www.codeproject.com/Articles/23206/Sudoku-Algorithm-Generates-a-Valid-Sudoku-in
+      function generateAnswers(numSquares) {
+        const answers = Array(numSquares);
+        const possibleAnswersBySquare = Array(numSquares);
+        for (let i = 0; i < numSquares; i++) {
+          possibleAnswersBySquare[i] = [1, 2, 3, 4, 5, 6, 7, 8, 9].shuffle();
+        }
+
+        let position = 0;
+        while (position < numSquares) {
+          let possibleAnswers = possibleAnswersBySquare[position]; 
+          if (possibleAnswers.length === 0) {
+            possibleAnswersBySquare[position] = [1, 2, 3, 4, 5, 6, 7, 8, 9].shuffle();
+            answers[position] = null;
+            if (position > 0) {
+              position--;
+            }
+            continue;
+          }
+
+          let answer = possibleAnswers.pop();
+          answers[position] = answer;
+          if (!isValid(position, answers)) {
+            answers[position] = null;
+            continue;
+          }
+
+          position++;
+        }
+        return answers; 
+      }
+
+      function isValid(position, squares) {
+        return findConflictingSquaresForPositions(squares, findSquaresInRow(position)).length === 0
+          && findConflictingSquaresForPositions(squares, findSquaresInCol(position)).length === 0
+         && findConflictingSquaresForPositions(squares, findSquaresInBlock(position)).length === 0;
+      }
+
+      function findConflictingSquares(squares) {
+        let conflictingSquares = [];
+
+        ROW_START_POSITIONS.forEach(p => {
+          conflictingSquares = conflictingSquares.concat(findConflictingSquaresForPositions(squares, findSquaresInRow(p)));
+        });
+
+        COL_START_POSITIONS.forEach(p => {
+          conflictingSquares = conflictingSquares.concat(findConflictingSquaresForPositions(squares, findSquaresInCol(p)));
+        });
+
+        BLOCK_START_POSITIONS.forEach(p => {
+          conflictingSquares = conflictingSquares.concat(findConflictingSquaresForPositions(squares, findSquaresInBlock(p)));
+        });
+
+        return Array.from(new Set(conflictingSquares));
+      }
+
+      function findConflictingSquaresForPositions(squares, positions) {
+        const conflictingSquares = new Set(); 
+        positions.forEach((position, index) => {
+          let value = squares[position];
+          if (!value) {
+            return;
+          }
+          let remainingPositions = positions.slice(index + 1);
+          remainingPositions.forEach(comparisonPosition => {
+            let comparisonValue = squares[comparisonPosition];
+            if (!comparisonValue) {
+              return;
+            }
+            
+            if (value === comparisonValue) {
+              conflictingSquares.add(position);
+              conflictingSquares.add(comparisonPosition);
+            }
+          });
+        });
+
+        return Array.from(conflictingSquares);
+      }
+
+      function findSquaresInRow(position) {
+        const rowPositions = [];
+        const start = Math.floor(position / NUM_COLS) * NUM_COLS;
+        for (let i = start; i < start + NUM_COLS; i++) {
+          rowPositions.push(i);
+        }
+        return rowPositions;
+      }
+
+      function findSquaresInCol(position) {
+        const colPositions = [];
+        const start = position % NUM_COLS;
+        for (let i = start; i < NUM_SQUARES; i += 9) {
+          colPositions.push(i);
+        }
+        return colPositions;
+      }
+
+      function findSquaresInBlock(position) {
+        const blockPositions = [];
+        const startRow = Math.floor(position / NUM_SQUARES_PER_ROW_OF_BLOCKS) * BLOCK_HEIGHT;
+        const startCol = Math.floor((position % NUM_COLS) / BLOCK_WIDTH) * BLOCK_WIDTH;
+        const start = startRow * NUM_COLS + startCol;
+        for (let i = 0; i < BLOCK_WIDTH; i++) {
+          for (let j = 0; j < BLOCK_HEIGHT; j++) {
+            blockPositions.push((start + i) + (j * NUM_COLS));
+          }
+        }
+        return blockPositions; 
+      }
+
+      function findFilledSquares(squares) {
+        const filledSquares = [];
+        squares.forEach((square, index) => {
+          if (square) {
+            filledSquares.push(index);
+          }
+        });
+        return filledSquares;
+      }
+
+      function isGameWon(squares) {
+        if (squares.includes(null)) {
+          return false;
+        }
+
+        return findConflictingSquares(squares).length == 0;
+      }
+
+      // Source: https://www.kirupa.com/html5/shuffling_array_js.htm
+      Array.prototype.shuffle = function() {
+          var input = this;
+           
+          for (var i = input.length-1; i >=0; i--) {
+           
+              var randomIndex = Math.floor(Math.random()*(i+1)); 
+              var itemAtIndex = input[randomIndex]; 
+               
+              input[randomIndex] = input[i]; 
+              input[i] = itemAtIndex;
+          }
+          return input;
+      }
+
+      // Source: https://stackoverflow.com/questions/3746725/create-a-javascript-array-containing-1-n
+      function createArrayToN(n) {
+        return Array.apply(null, {length: n}).map(Number.call, Number);
+      }
+
+
+      // ##################################################
+      // React components
+      // ##################################################
+
+			function Square(props) {
+        const highlighted = props.highlighted ? " highlighted" : "";
+        const inactive = props.inactive ? " inactive" : "";
+        const conflicting = props.conflicting ? " conflicting" : "";
+			  return (
+			    <button className={"square" + highlighted + inactive + conflicting} onClick={props.onClick} onKeyDown={event => props.onKeyDown(event.key)}>
+			      {props.value}
+			    </button>
+			  );
+			}
+			
+			class Board extends React.Component {
+			  renderSquare(i) {
+          if (this.props.conflictingSquares.includes(i)) {
+          }
+			    return (
+			      <Square
+			        value={this.props.squares[i]}
+              highlighted={this.props.selectedSquare === i}
+              inactive={this.props.prefilledSquares.includes(i)}
+              conflicting={this.props.conflictingSquares.includes(i)}
+			        onClick={() => this.props.onClick(i)}
+              onKeyDown={key => this.props.onKeyDown(i, key)}
+              key={"square-" + i}
+			      />
+			    );
+			  }
+			
+			  render() {
+          const board = [];
+          for (let row = 0; row < NUM_ROWS; row++) {
+            let squares = [];
+            for (let col = 0; col < NUM_COLS; col++) {
+              let squarePosition = row * NUM_COLS + col;
+              squares.push(this.renderSquare(squarePosition));
+            }
+            board.push(
+              <div className="board-row" key={"board-row-" + row}>
+                {squares}
+              </div>
+            );
+          }
+			    return (
+            <div>
+              {board}
+            </div>
+          );
+			  }
+			}
+			
+			class Game extends React.Component {
+			  constructor() {
+			    super();
+			    const squares = generateSquares(NUM_SQUARES, LOW_DIFFICULTY_PROBABILITY);
+			    this.state = {
+			      squares: squares,
+            selectedSquare: null,
+            prefilledSquares: findFilledSquares(squares.slice()),
+            conflictingSquares: []
+			    };
+			  }
+
+			  handleClick(i) {
+          if (this.state.prefilledSquares.includes(i) || isGameWon(this.state.squares.slice())) {
+            return;
+          }
+
+          this.setState({
+            selectedSquare: i
+          });
+			  }
+
+        handleKeyDown(i, key) {
+			    const squares = this.state.squares.slice();
+
+          if (this.state.prefilledSquares.includes(i) || isGameWon(squares)) {
+            return;
+          }
+
+          let userAnswer;
+          if (key === "Backspace") {
+            userAnswer = null;
+          } else {
+            userAnswer = parseInt(key);
+            if (isNaN(userAnswer)) {
+              return;
+            }
+          }
+
+          squares[i] = userAnswer;
+
+          const conflictingSquares = findConflictingSquares(squares);
+
+			    this.setState({
+			      squares: squares,
+            conflictingSquares: conflictingSquares
+			    });
+        }
+			
+			  render() {
+			    const squares = this.state.squares.slice();
+          const status = isGameWon(squares) ? "You have won the game!" : "";
+
+			    return (
+			      <div className="game">
+			        <div className="game-board">
+			          <Board
+			            squares={squares}
+                  selectedSquare={this.state.selectedSquare}
+                  prefilledSquares={this.state.prefilledSquares}
+                  conflictingSquares={this.state.conflictingSquares}
+			            onClick={i => this.handleClick(i)}
+                  onKeyDown={(i, key) => this.handleKeyDown(i, key)}
+			          />
+			        </div>
+			        <div className="game-info">
+			          <div>{status}</div>
+			        </div>
+			      </div>
+			    );
+			  }
+			}
+			
+			// ========================================
+			
+			ReactDOM.render(<Game />, document.getElementById("root"));
+			
+
+    </script>
+  </body>
+</html>
