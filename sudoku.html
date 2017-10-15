@@ -56,17 +56,64 @@
       // Global constants
       // ##################################################
 
+      /**
+       * The number of rows
+       */
       const NUM_ROWS = 9;
+
+      /**
+       * The number of columns
+       */
       const NUM_COLS = 9;
+
+      /**
+       * The total number of squares
+       */
       const NUM_SQUARES = NUM_ROWS * NUM_COLS;
+
+      /**
+       * The number of columns in a block
+       */
       const BLOCK_WIDTH = 3;
+
+      /**
+       * The number of rows in a block
+       */
       const BLOCK_HEIGHT = 3;
+
+      /**
+       * The number of blocks in one row of blocks
+       */
       const NUM_BLOCKS_PER_ROW = NUM_COLS / BLOCK_WIDTH;
+
+      /**
+       * The number of squares in one row of adjacent blocks
+       */
       const NUM_SQUARES_PER_ROW_OF_BLOCKS = BLOCK_WIDTH * BLOCK_HEIGHT * NUM_BLOCKS_PER_ROW;
+
+      /**
+       * The likelihood that a square will contain an answer at the start of the game
+       */
       const LOW_DIFFICULTY_PROBABILITY = 0.5;
+
+      /**
+       * The lowest position value for each row 
+       */
       const ROW_START_POSITIONS = [0, 9, 18, 27, 36, 45, 54, 63, 72];
+
+      /**
+       * The lowest position value for each column
+       */
       const COL_START_POSITIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+
+      /**
+       * The lowest position value for each block
+       */
       const BLOCK_START_POSITIONS = [0, 3, 6, 27, 30, 33, 54, 57, 60]; 
+
+      /**
+       * The possible answers for a square
+       */
       const POSSIBLE_ANSWERS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 
