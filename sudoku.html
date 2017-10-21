@@ -72,17 +72,17 @@
       const NUM_SQUARES = NUM_ROWS * NUM_COLS;
 
       /**
-       * The number of columns in a block
+       * The width of a block, in terms of columns
        */
       const BLOCK_WIDTH = 3;
 
       /**
-       * The number of rows in a block
+       * The height of a block, in terms of rows
        */
       const BLOCK_HEIGHT = 3;
 
       /**
-       * The number of blocks in one row of blocks
+       * The number of blocks in a row of blocks
        */
       const NUM_BLOCKS_PER_ROW = NUM_COLS / BLOCK_WIDTH;
 
@@ -92,7 +92,7 @@
       const NUM_SQUARES_PER_ROW_OF_BLOCKS = BLOCK_WIDTH * BLOCK_HEIGHT * NUM_BLOCKS_PER_ROW;
 
       /**
-       * The likelihood that a square will contain an answer at the start of the game
+       * The likelihood that a square will be prefilled with an answer when the game starts
        */
       const LOW_DIFFICULTY_PROBABILITY = 0.5;
 
@@ -258,7 +258,7 @@
       function findSquaresInCol(position) {
         const colPositions = [];
         const start = position % NUM_COLS;
-        for (let i = start; i < NUM_SQUARES; i += 9) {
+        for (let i = start; i < NUM_SQUARES; i += NUM_COLS) {
           colPositions.push(i);
         }
         return colPositions;
@@ -464,17 +464,11 @@
 			    });
         }
 
-        handleRef(el, i) {
-          console.log(i);
-          console.log(el);
-          this.refs[i] = el;
-        }
-			
 			  render() {
 			    const squares = this.state.squares.slice();
           const status = isGameWon(squares) ? "You have won the game!" : "";
 
-          this.refs = Array(81);
+          this.refs = Array(NUM_SQUARES);
 
 			    return (
 			      <div className="game">
@@ -486,7 +480,7 @@
                   conflictingSquares={this.state.conflictingSquares}
 			            onClick={i => this.handleClick(i)}
                   onKeyDown={(i, key) => this.handleKeyDown(i, key)}
-                  squareRef={(el, i) => this.handleRef(el, i)}
+                  squareRef={(el, i) => this.refs[i] = el}
 			          />
 			        </div>
 			        <div className="game-info">
