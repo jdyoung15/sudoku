@@ -357,7 +357,8 @@
         const inactive = props.inactive ? " inactive" : "";
         const conflicting = props.conflicting ? " conflicting" : "";
 			  return (
-			    <button className={"square" + highlighted + inactive + conflicting} onClick={props.onClick} onKeyDown={event => props.onKeyDown(event.key)} ref={props.squareRef}>
+			    <button className={"square" + highlighted + inactive + conflicting} onClick={props.onClick} 
+            onKeyDown={event => props.onKeyDown(event.key)} ref={props.squareRef}>
 			      {props.value}
 			    </button>
 			  );
@@ -365,8 +366,6 @@
 			
 			class Board extends React.Component {
 			  renderSquare(i) {
-          if (this.props.conflictingSquares.includes(i)) {
-          }
 			    return (
 			      <Square
 			        value={this.props.squares[i]}
@@ -472,11 +471,9 @@
 
           squares[i] = userAnswer;
 
-          const conflictingSquares = Sudoku.findConflictingSquares(squares);
-
 			    this.setState({
 			      squares: squares,
-            conflictingSquares: conflictingSquares
+            conflictingSquares: Sudoku.findConflictingSquares(squares)
 			    });
         }
 
