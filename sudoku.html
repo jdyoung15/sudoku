@@ -155,14 +155,62 @@
          *   represent answered squares, the nulls empty squares. 
          */
         function generateInitialSquares(numSquares, probability) {
-          const squares = Array(numSquares).fill(null);
+          const initialSquares = Array(numSquares).fill(null);
           const answers = generateAnswers(numSquares);
-          answers.forEach((answer, index) => {
-            if (Math.random() < probability) {
-              squares[index] = answer;
-            }
-          });
-          return squares;
+
+          // initialize array of all 81 positions
+          var positions = Array.apply(null, {length: NUM_SQUARES}).map(Number.call, Number).shuffle();
+            
+          // intialize counts of row, col, blocks
+          const rowCounts = Array(ROW_START_POSITIONS.length).fill(0);
+          const colCounts = Array(COL_START_POSITIONS.length).fill(0);
+          const blockCounts = Array(BLOCK_START_POSITIONS.length).fill(0);
+
+          // calculate number of squares to populate, based on difficulty level
+          const numPrefilledSquares = Math.floor(numSquares * probability);
+
+          // for each square to populate:
+          for (let i = 0; i < numPrefilledSquares; i++) {
+            // "draw" 5-10 random square positions that have not already been populated
+            let possiblePositions = positions.slice(0, 5); // todo: what if positions length < 5?
+            // evaluate rank of each
+            let selectedPosition = -1;
+            let maxRank = Number.NEGATIVE_INFINITY;
+            possiblePositions.forEach(p => {
+              // (calculate row, col, and block of each and add them up)
+              let rank = -1 * (rowCounts[findRowCountIndex(p)] + colCounts[findColCountIndex(p)] + blockCounts[findBlockCountIndex(p)]);
+              if (rank > maxRank) {
+                selectedPosition = p;
+                maxRank = rank;
+              }
+            });
+            // the square with the highest rank, "reveal" answer to that square
+            initialSquares[selectedPosition] = answers[selectedPosition];
+
+            // update row, col, and block counts with the selected square position
+            rowCounts[findRowCountIndex(selectedPosition)]++;
+            colCounts[findColCountIndex(selectedPosition)]++;
+            blockCounts[findBlockCountIndex(selectedPosition)]++;
+
+            // remove selected position from position list
+            positions.splice(positions.indexOf(selectedPosition), 1);
+
+            positions = positions.shuffle();
+          }
+
+          return initialSquares;
+        }
+
+        function findRowCountIndex(position) {
+          return ROW_START_POSITIONS.indexOf(findRowStart(position))
+        }
+
+        function findColCountIndex(position) {
+          return COL_START_POSITIONS.indexOf(findColStart(position))
+        }
+
+        function findBlockCountIndex(position) {
+          return BLOCK_START_POSITIONS.indexOf(findBlockStart(position))
         }
 
         /**
@@ -271,11 +319,15 @@
          */
         function findSquaresInRow(position) {
           const rowPositions = [];
-          const start = Math.floor(position / NUM_COLS) * NUM_COLS;
+          const start = findRowStart(position);
           for (let i = start; i < start + NUM_COLS; i++) {
             rowPositions.push(i);
           }
           return rowPositions;
+        }
+
+        function findRowStart(position) {
+          return Math.floor(position / NUM_COLS) * NUM_COLS;
         }
 
         /**
@@ -284,11 +336,15 @@
          */
         function findSquaresInCol(position) {
           const colPositions = [];
-          const start = position % NUM_COLS;
+          const start = findColStart(position);
           for (let i = start; i < NUM_SQUARES; i += NUM_COLS) {
             colPositions.push(i);
           }
           return colPositions;
+        }
+
+        function findColStart(position) {
+          return position % NUM_COLS;
         }
 
         /**
@@ -297,15 +353,19 @@
          */
         function findSquaresInBlock(position) {
           const blockPositions = [];
-          const startRow = Math.floor(position / NUM_SQUARES_PER_ROW_OF_BLOCKS) * BLOCK_HEIGHT;
-          const startCol = Math.floor((position % NUM_COLS) / BLOCK_WIDTH) * BLOCK_WIDTH;
-          const start = startRow * NUM_COLS + startCol;
+          const start = findBlockStart(position);
           for (let i = 0; i < BLOCK_WIDTH; i++) {
             for (let j = 0; j < BLOCK_HEIGHT; j++) {
               blockPositions.push((start + i) + (j * NUM_COLS));
             }
           }
           return blockPositions; 
+        }
+
+        function findBlockStart(position) {
+          const startRow = Math.floor(position / NUM_SQUARES_PER_ROW_OF_BLOCKS) * BLOCK_HEIGHT;
+          const startCol = Math.floor((position % NUM_COLS) / BLOCK_WIDTH) * BLOCK_WIDTH;
+          return startRow * NUM_COLS + startCol;
         }
 
         /**
