@@ -113,7 +113,11 @@
         // Functions
         // ##################################################
 
-        var Counter = function() {
+        /**
+         * A helper class to keep track of how many squares have been filled
+         * in each row, column, and block.
+         */
+        var GroupSquareCounter = function() {
           const rowCounts = Array(ROW_START_POSITIONS.length).fill(0);
           const colCounts = Array(COL_START_POSITIONS.length).fill(0);
           const blockCounts = Array(BLOCK_START_POSITIONS.length).fill(0);
@@ -130,13 +134,21 @@
             return BLOCK_START_POSITIONS.indexOf(findBlockStart(position))
           }
 
+          /**
+           * @param {Number} position - The position of a square
+           * @returns {Number} A numerical value that represents the value of the given position
+           */
           function getRank(position) {
             const rowCount = rowCounts[findRowCountIndex(position)];
             const colCount = colCounts[findColCountIndex(position)];
             const blockCount = blockCounts[findBlockCountIndex(position)];
+            // The greater the number of squares in the same row/col/block, the lower the ranking
             return -1 * (rowCount + colCount + blockCount);
           }
-
+          
+          /**
+           * @param {Number} position - The position of a square
+           */
           function increment(position) {
             rowCounts[findRowCountIndex(position)]++;
             colCounts[findColCountIndex(position)]++;
@@ -177,14 +189,14 @@
             let selectedPosition = -1;
             let maxRank = Number.NEGATIVE_INFINITY;
             possiblePositions.forEach(p => {
-              let rank = Counter.getRank(p);
+              let rank = GroupSquareCounter.getRank(p);
               if (rank > maxRank) {
                 selectedPosition = p;
                 maxRank = rank;
               }
             });
 
-            Counter.increment(selectedPosition);
+            GroupSquareCounter.increment(selectedPosition);
             initialSquares[selectedPosition] = answers[selectedPosition];
             positions.splice(positions.indexOf(selectedPosition), 1);
             positions = positions.shuffle();
@@ -307,6 +319,10 @@
           return rowPositions;
         }
 
+        /**
+         * @param {Number} position - The position of a square
+         * @returns {Number} The lowest position of the squares in the same row as the given square
+         */
         function findRowStart(position) {
           return Math.floor(position / NUM_COLS) * NUM_COLS;
         }
@@ -324,6 +340,10 @@
           return colPositions;
         }
 
+        /**
+         * @param {Number} position - The position of a square
+         * @returns {Number} The lowest position of the squares in the same column as the given square
+         */
         function findColStart(position) {
           return position % NUM_COLS;
         }
@@ -343,6 +363,10 @@
           return blockPositions; 
         }
 
+        /**
+         * @param {Number} position - The position of a square
+         * @returns {Number} The lowest position of the squares in the same block as the given square
+         */
         function findBlockStart(position) {
           const startRow = Math.floor(position / NUM_SQUARES_PER_ROW_OF_BLOCKS) * BLOCK_HEIGHT;
           const startCol = Math.floor((position % NUM_COLS) / BLOCK_WIDTH) * BLOCK_WIDTH;
