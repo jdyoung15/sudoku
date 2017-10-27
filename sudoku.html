@@ -23,35 +23,6 @@
 
     <script type="text/babel">
 
-      window.addEventListener('mousedown', function(e) {
-        document.body.classList.add('mouse-navigation');
-        document.body.classList.remove('kbd-navigation');
-      });
-      window.addEventListener('keydown', function(e) {
-        if (e.keyCode === 9) {
-          document.body.classList.add('kbd-navigation');
-          document.body.classList.remove('mouse-navigation');
-        }
-      });
-      window.addEventListener('click', function(e) {
-        if (e.target.tagName === 'A' && e.target.getAttribute('href') === '#') {
-          e.preventDefault();
-        }
-      });
-      window.onerror = function(message, source, line, col, error) {
-        var text = error ? error.stack || error : message + ' (at ' + source + ':' + line + ':' + col + ')';
-        errors.textContent += text + '\n';
-        errors.style.display = '';
-      };
-      console.error = (function(old) {
-        return function error() {
-          errors.textContent += Array.prototype.slice.call(arguments).join(' ') + '\n';
-          errors.style.display = '';
-          old.apply(this, arguments);
-        }
-      })(console.error);
-
-
       /**
        * @returns {Array} Returns this array with its contents in randomized order
        *
@@ -70,12 +41,6 @@
           }
           return input;
       }
-
-      //// Source: https://stackoverflow.com/questions/3746725/create-a-javascript-array-containing-1-n
-      //function createArrayToN(n) {
-      //  return Array.apply(null, {length: n}).map(Number.call, Number);
-      //}
-
 
       var Sudoku = function() {
 
@@ -455,6 +420,21 @@
             />
           );
         }
+
+        componentWillMount() {
+          document.addEventListener('click', this.handleAnyClick, false);
+        }
+
+        componentWillUnmount() {
+          document.removeEventListener('click', this.handleAnyClick, false);
+        }
+
+        handleAnyClick = (e) => {
+          if (!ReactDOM.findDOMNode(this).contains(e.target)) {
+            // click was outside Board component
+            this.props.onOutsideClick();
+          }
+        }
       
         render() {
           const board = [];
@@ -492,6 +472,9 @@
 
         handleClick(i) {
           if (this.state.prefilledSquares.includes(i) || Sudoku.isGameWon(this.state.squares.slice())) {
+            this.setState({
+              selectedSquare: null
+            });
             return;
           }
 
@@ -553,6 +536,13 @@
           });
         }
 
+        handleOutsideClick = () => {
+          this.setState({
+            selectedSquare: null
+          });
+        }
+          
+
         render() {
           const squares = this.state.squares.slice();
           const status = Sudoku.isGameWon(squares) ? "You have won the game!" : "";
@@ -570,6 +560,7 @@
                   onClick={i => this.handleClick(i)}
                   onKeyDown={(i, key) => this.handleKeyDown(i, key)}
                   squareRef={(el, i) => this.refs[i] = el}
+                  onOutsideClick={() => this.handleOutsideClick()}
                 />
               </div>
               <div className="game-info">
