@@ -22,15 +22,15 @@ ol, ul {
   border: 1px solid #999;
   border-radius: 0;
   float: left;
-  font-size: 24px;
+  font-size: 30px;
   font-weight: 200;
-  line-height: 34px;
-  height: 34px;
+  line-height: 50px;
+  height: 50px;
   margin-right: -1px;
   margin-top: -1px;
   padding: 0;
   text-align: center;
-  width: 34px;
+  width: 50px;
 }
 
 .board-row:nth-child(1) .square {
